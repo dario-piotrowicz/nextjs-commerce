@@ -1,7 +1,7 @@
 import { HIDDEN_PRODUCT_TAG, SHOPIFY_GRAPHQL_API_ENDPOINT, TAGS } from 'lib/constants';
 import { isShopifyError } from 'lib/type-guards';
 import { ensureStartsWith } from 'lib/utils';
-import { revalidateTag } from 'next/cache';
+import { revalidateTag, unstable_cache, unstable_noStore } from 'next/cache';
 import { headers } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import {
@@ -71,47 +71,62 @@ export async function shopifyFetch<T>({
   tags?: string[];
   variables?: ExtractVariables<T>;
 }): Promise<{ status: number; body: T } | never> {
-  try {
-    const result = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Storefront-Access-Token': key,
-        ...headers
-      },
-      body: JSON.stringify({
-        ...(query && { query }),
-        ...(variables && { variables })
-      }),
-      cache,
-      ...(tags && { next: { tags } })
-    });
+  const fetchBody = JSON.stringify({
+    ...(query && { query }),
+    ...(variables && { variables })
+  });
 
-    const body = await result.json();
+  const doFetch = async () => {
+    try {
+      const result = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Storefront-Access-Token': key,
+          ...headers
+        },
+        body: fetchBody,
+        ...(tags && { next: { tags } })
+      });
 
-    if (body.errors) {
-      throw body.errors[0];
-    }
+      const body = (await result.json()) as T;
 
-    return {
-      status: result.status,
-      body
-    };
-  } catch (e) {
-    if (isShopifyError(e)) {
+      if ((body as any).errors) {
+        throw (body as any).errors[0];
+      }
+
+      return {
+        status: result.status,
+        body
+      };
+    } catch (e) {
+      if (isShopifyError(e)) {
+        throw {
+          cause: e.cause?.toString() || 'unknown',
+          status: e.status || 500,
+          message: e.message,
+          query
+        };
+      }
+
       throw {
-        cause: e.cause?.toString() || 'unknown',
-        status: e.status || 500,
-        message: e.message,
+        error: e,
         query
       };
     }
+  };
 
-    throw {
-      error: e,
-      query
-    };
+  // Cloudflare doesn't (currently) support force-cache or no-store cache options
+  // So we use unstable_cache and unstable_noStore respectively to implement them
+
+  switch (cache) {
+    case 'force-cache':
+      return unstable_cache(doFetch, [fetchBody], { ...(tags && { tags }) })();
+    case 'no-store':
+      unstable_noStore();
   }
+
+  return doFetch();
 }
 
 const removeEdgesAndNodes = <T>(array: Connection<T>): T[] => {
@@ -181,7 +196,10 @@ const reshapeProduct = (product: ShopifyProduct, filterHiddenProducts: boolean =
   return {
     ...rest,
     images: reshapeImages(images, product.title),
-    variants: removeEdgesAndNodes(variants)
+    variants: removeEdgesAndNodes(variants).map((v) =>
+      // We'll make at least one variant unavailable for sale to demonstrate the feature.
+      v.title === 'Vintage Black / L' ? { ...v, availableForSale: false } : v
+    )
   };
 };
 
@@ -333,7 +351,12 @@ export async function getCollections(): Promise<Collection[]> {
     // Filter out the `hidden` collections.
     // Collections that start with `hidden-*` need to be hidden on the search page.
     ...reshapeCollections(shopifyCollections).filter(
-      (collection) => !collection.handle.startsWith('hidden')
+      (collection) =>
+        !collection.handle.startsWith('hidden') &&
+        // These collections have no products
+        !['antiperistaltic-gold-socks', 'blistered-aluminum-boat', 'frontpage'].includes(
+          collection.handle
+        )
     )
   ];
 
@@ -341,6 +364,16 @@ export async function getCollections(): Promise<Collection[]> {
 }
 
 export async function getMenu(handle: string): Promise<Menu[]> {
+  if (handle === 'next-js-frontend-header-menu') {
+    return [
+      { title: 'All', path: '/search' },
+      { title: 'Latest Stuff', path: '/search/latest-stuff' },
+      { title: 'Casual Things', path: '/search/casual-things' }
+    ];
+  } else if (handle === 'next-js-frontend-footer-menu') {
+    return [{ title: 'Home', path: '/' }];
+  }
+
   const res = await shopifyFetch<ShopifyMenuOperation>({
     query: getMenuQuery,
     tags: [TAGS.collections],

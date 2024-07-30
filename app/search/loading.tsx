@@ -1,5 +1,7 @@
 import Grid from 'components/grid';
 
+export const runtime = 'edge';
+
 export default function Loading() {
   return (
     <Grid className="grid-cols-2 lg:grid-cols-3">
