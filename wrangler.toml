@@ -18,6 +18,8 @@ minify = true
 "next/dist/compiled/jsonwebtoken" = "./scripts/shim-throw.mjs"
 "./cjs/react-dom-server-legacy.browser.development.js" = "./scripts/shim-throw.mjs"
 "./cjs/react-dom-server.browser.development.js" = "./scripts/shim-throw.mjs"
+"./cjs/react.development.js" = "./scripts/shim-throw.mjs"
+"./cjs/react-jsx-runtime.development.js" = "./scripts/shim-throw.mjs"
 
 [vars]
 COMPANY_NAME = "Next.js"
