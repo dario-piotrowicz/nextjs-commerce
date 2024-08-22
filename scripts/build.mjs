@@ -353,17 +353,3 @@ for (const unenvFile of unenvProcessFiles) {
     )
   );
 }
-
-const unenvRequestFiles = [
-  unenvBase + '/runtime/node/http/internal/request.cjs',
-  unenvBase + '/runtime/node/http/internal/request.mjs'
-];
-for (const unenvFile of unenvRequestFiles) {
-  writeFileSync(
-    unenvFile,
-    readFileSync(unenvFile, 'utf-8').replace(
-      /"\.\.\/\.\.\/stream\/internal\/readable\.[cm]js"/,
-      '"node:stream"'
-    )
-  );
-}
