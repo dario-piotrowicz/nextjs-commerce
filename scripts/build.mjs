@@ -24,15 +24,6 @@ const nextConfigStr = readFileSync(APP_BASE_DIR + '/server.js', 'utf8').match(
   /const nextConfig = ({.+?})\n/
 )[1];
 
-// Uncomment this to populate cache entries:
-
-// const cacheEntries = globSync(`${BASE_DIR}/cache/fetch-cache/*`).reduce((acc, file) => {
-//   acc[file.replace(REPO_ROOT, '')] = readFileSync(file, 'utf-8');
-//   return acc;
-// }, {});
-
-const cacheEntries = {};
-
 let replaceRelativePlugin = {
   name: 'replaceRelative',
   setup(build) {
@@ -43,17 +34,13 @@ let replaceRelativePlugin = {
   }
 };
 
-const result = await esbuild.build({
+await esbuild.build({
   entryPoints: [ENTRYPOINT],
   bundle: true,
   outfile: OUTFILE,
   alias: {
     'next/dist/experimental/testmode/server': path.join(import.meta.dirname, './shim-empty.mjs'),
     'next/dist/compiled/ws': path.join(import.meta.dirname, './shim-empty.mjs'),
-    'next/dist/compiled/node-html-parser': path.join(
-      import.meta.dirname,
-      './shim-node-html-parser.mjs'
-    ),
     '@next/env': path.join(import.meta.dirname, './shim-env.mjs'),
     '@opentelemetry/api': path.join(import.meta.dirname, './shim-throw.mjs'),
     "next/dist/compiled/edge-runtime": path.join(import.meta.dirname, './shim-empty.mjs'),
@@ -78,53 +65,6 @@ const result = await esbuild.build({
     js: `
 globalThis.setImmediate ??= (c) => setTimeout(c, 0);
 globalThis.__dirname ??= "";
-
-let isPatchedAlready = globalThis.fetch.__nextPatched;
-const curFetch = globalThis.fetch;
-globalThis.fetch = (input, init) => {
-  console.log("globalThis.fetch", input);
-  if (init) delete init.cache;
-  return curFetch(input, init);
-};
-globalThis.fetch.__nextPatched = isPatchedAlready;
-fetch = globalThis.fetch;
-
-const CustomRequest = class extends globalThis.Request {
-  constructor(input, init) {
-    console.log("CustomRequest", input);
-    if (init) delete init.cache;
-    super(input, init);
-  }
-};
-globalThis.Request = CustomRequest;
-Request = globalThis.Request;
-
-// https://github.com/cloudflare/workerd/issues/2538
-
-Buffer.prototype.asciiSlice = function (start, end) {
-  return this.toString("ascii", start, end);
-};
-Buffer.prototype.base64Slice = function (start, end) {
-  return this.toString("base64", start, end);
-};
-Buffer.prototype.base64urlSlice = function (start, end) {
-  return this.toString("base64url", start, end);
-};
-Buffer.prototype.hexSlice = function (start, end) {
-  return this.toString("hex", start, end);
-};
-Buffer.prototype.latin1Slice = function (start, end) {
-  return this.toString("latin1", start, end);
-};
-Buffer.prototype.ucs2Slice = function (start, end) {
-  return this.toString("ucs2", start, end);
-};
-Buffer.prototype.utf8Slice = function (start, end) {
-  return this.toString("utf8", start, end);
-};
-
-globalThis.MY_FILE_CACHE = ${JSON.stringify(cacheEntries)};
-globalThis.MY_FILE_CACHE_MTIME = ${Date.now()};
     `
   }
 });
@@ -200,13 +140,6 @@ contents = contents.replace(
     )
     .join('\n')}
   throw new Error("Unknown pagePath: " + pagePath);
-  `
-);
-
-contents = contents.replace(
-  /if \(cacheHandler\) {.+?CacheHandler = .+?}/s,
-  `
-  CacheHandler = null;
   `
 );
 
@@ -294,8 +227,6 @@ contents = contents.replace(
 );
 
 writeFileSync(OUTFILE, contents);
-
-writeFileSync(import.meta.dirname + '/meta.json', JSON.stringify(result.metafile, null, 2));
 
 const chunks = readdirSync(NEXT_SERVER_DIR + '/chunks')
   .filter((chunk) => /^\d+\.js$/.test(chunk))
