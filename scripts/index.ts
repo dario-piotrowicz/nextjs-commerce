@@ -25,10 +25,12 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === '/_next/image') {
-      return fetch(
-        url.searchParams.get('url') ?? 'https://developers.cloudflare.com/_astro/logo.BU9hiExz.svg',
-        { cf: { cacheEverything: true } } as any
-      );
+      let imageUrl =
+        url.searchParams.get('url') ?? 'https://developers.cloudflare.com/_astro/logo.BU9hiExz.svg';
+      if (imageUrl.startsWith('/')) {
+        imageUrl = new URL(imageUrl, request.url).href;
+      }
+      return fetch(imageUrl, { cf: { cacheEverything: true } } as any);
     }
 
     const resBody = new TransformStream();

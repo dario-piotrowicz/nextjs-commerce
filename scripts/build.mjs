@@ -16,6 +16,9 @@ const OUTFILE = APP_BASE_DIR + '/worker.mjs';
 
 execSync(`mkdir -p ${BASE_DIR}/assets/_next`);
 execSync(`cp -R ${BASE_DIR}/static ${BASE_DIR}/assets/_next/`);
+if (existsSync(`${REPO_ROOT}/public`)) {
+  execSync(`cp -R ${REPO_ROOT}/public/* ${BASE_DIR}/assets/`);
+}
 
 const nextConfigStr = readFileSync(APP_BASE_DIR + '/server.js', 'utf8').match(
   /const nextConfig = ({.+?})\n/
@@ -59,7 +62,10 @@ const result = await esbuild.build({
   alias: {
     'next/dist/experimental/testmode/server': path.join(import.meta.dirname, './shim-empty.mjs'),
     'next/dist/compiled/ws': path.join(import.meta.dirname, './shim-empty.mjs'),
-    'next/dist/compiled/node-html-parser': path.join(import.meta.dirname, './shim-empty.mjs'),
+    'next/dist/compiled/node-html-parser': path.join(
+      import.meta.dirname,
+      './shim-node-html-parser.mjs'
+    ),
     '@next/env': path.join(import.meta.dirname, './shim-env.mjs'),
     '@opentelemetry/api': path.join(import.meta.dirname, './shim-throw.mjs')
   },
@@ -299,12 +305,18 @@ contents = contents.replace(
 );
 
 // TODO: investigate why ETags/304s aren't working correctly
-// contents = contents.replace(
-//   /function fresh\(.+?\) {/,
-//   `$&
-//   return false;
-//   `
-// );
+contents = contents.replace(
+  /function fresh\(.+?\) {/,
+  `$&
+  return false;
+  `
+);
+
+// We don't have edge functions in front of this, so just 404
+contents = contents.replace(
+  /result = await this.renderHTML\(.+?\);/,
+  'result = { metadata: { isNotFound: true } };'
+);
 
 writeFileSync(OUTFILE, contents);
 
