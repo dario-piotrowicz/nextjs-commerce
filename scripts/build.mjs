@@ -299,12 +299,12 @@ contents = contents.replace(
 );
 
 // TODO: investigate why ETags/304s aren't working correctly
-contents = contents.replace(
-  /function fresh\(.+?\) {/,
-  `$&
-  return false;
-  `
-);
+// contents = contents.replace(
+//   /function fresh\(.+?\) {/,
+//   `$&
+//   return false;
+//   `
+// );
 
 writeFileSync(OUTFILE, contents);
 
