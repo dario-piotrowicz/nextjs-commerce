@@ -40,18 +40,6 @@ let replaceRelativePlugin = {
     build.onResolve({ filter: /^\.\/require-hook$/ }, (args) => ({
       path: path.join(import.meta.dirname, './shim-empty.mjs')
     }));
-    // No need for edge-runtime sandbox
-    build.onResolve({ filter: /\.\/web\/sandbox$/ }, (args) => ({
-      path: path.join(import.meta.dirname, './shim-empty.mjs')
-    }));
-    // // No need for supporting previews and jsonwebtoken
-    build.onResolve({ filter: /\.\/api-utils\/node\/try-get-preview-data$/ }, (args) => ({
-      path: path.join(import.meta.dirname, './shim-try-get-preview-data.mjs')
-    }));
-    // Use in-memory fs methods for now
-    build.onResolve({ filter: /\.\/lib\/node-fs-methods$/ }, (args) => ({
-      path: path.join(import.meta.dirname, './shim-node-fs-methods.mjs')
-    }));
   }
 };
 
@@ -67,7 +55,8 @@ const result = await esbuild.build({
       './shim-node-html-parser.mjs'
     ),
     '@next/env': path.join(import.meta.dirname, './shim-env.mjs'),
-    '@opentelemetry/api': path.join(import.meta.dirname, './shim-throw.mjs')
+    '@opentelemetry/api': path.join(import.meta.dirname, './shim-throw.mjs'),
+    "next/dist/compiled/edge-runtime": path.join(import.meta.dirname, './shim-empty.mjs'),
   },
   plugins: [replaceRelativePlugin],
   format: 'esm',
@@ -176,13 +165,13 @@ const appPathsManifestFile = NEXT_SERVER_DIR + '/app-paths-manifest.json';
 
 const pagesManifestFiles = existsSync(pagesManifestFile)
   ? Object.values(JSON.parse(readFileSync(pagesManifestFile, 'utf-8'))).map(
-      (file) => '.next/server/' + file
-    )
+    (file) => '.next/server/' + file
+  )
   : [];
 const appPathsManifestFiles = existsSync(appPathsManifestFile)
   ? Object.values(JSON.parse(readFileSync(appPathsManifestFile, 'utf-8'))).map(
-      (file) => '.next/server/' + file
-    )
+    (file) => '.next/server/' + file
+  )
   : [];
 const allManifestFiles = pagesManifestFiles.concat(appPathsManifestFiles);
 
@@ -271,13 +260,13 @@ contents = contents.replace(
           return {
             __RSC_MANIFEST: {
               "${manifestJs
-                .replace('.next/server/app', '')
-                .replace(
-                  '_client-reference-manifest.js',
-                  ''
-                )}": globalThis.__RSC_MANIFEST["${manifestJs
-                .replace('.next/server/app', '')
-                .replace('_client-reference-manifest.js', '')}"],
+          .replace('.next/server/app', '')
+          .replace(
+            '_client-reference-manifest.js',
+            ''
+          )}": globalThis.__RSC_MANIFEST["${manifestJs
+            .replace('.next/server/app', '')
+            .replace('_client-reference-manifest.js', '')}"],
             },
           };
         }
@@ -333,15 +322,15 @@ writeFileSync(
     `__webpack_require__.f.require = (chunkId, promises) => {
       if (installedChunks[chunkId]) return;
       ${chunks
-        .map(
-          (chunk) => `
+      .map(
+        (chunk) => `
         if (chunkId === ${chunk}) {
           installChunk(require("./chunks/${chunk}.js"));
           return;
         }
       `
-        )
-        .join('\n')}
+      )
+      .join('\n')}
     `
   )
 );
