@@ -293,20 +293,6 @@ contents = contents.replace(
   `
 );
 
-// TODO: investigate why ETags/304s aren't working correctly
-contents = contents.replace(
-  /function fresh\(.+?\) {/,
-  `$&
-  return false;
-  `
-);
-
-// We don't have edge functions in front of this, so just 404
-contents = contents.replace(
-  /result = await this.renderHTML\(.+?\);/,
-  'result = { metadata: { isNotFound: true } };'
-);
-
 writeFileSync(OUTFILE, contents);
 
 writeFileSync(import.meta.dirname + '/meta.json', JSON.stringify(result.metafile, null, 2));
