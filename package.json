@@ -12,7 +12,8 @@
     "prettier:check": "prettier --check --ignore-unknown .",
     "test": "pnpm prettier:check",
     "build:worker": "node scripts/build.mjs",
-    "preview": "npm run build:worker && wrangler dev"
+    "preview": "npm run build:worker && wrangler dev",
+    "preview:worker": "pnpm build && pnpm preview"
   },
   "dependencies": {
     "@headlessui/react": "^2.1.2",
