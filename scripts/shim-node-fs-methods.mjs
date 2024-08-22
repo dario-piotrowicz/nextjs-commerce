@@ -4,46 +4,42 @@ export const nodeFs = {
   readFileSync,
   writeFile,
   mkdir,
-  stat,
+  stat
 };
 
 function existsSync(path) {
-  console.log(
-    "existsSync",
-    path,
-    new Error().stack.split("\n").slice(1).join("\n"),
-  );
-  return typeof globalThis.MY_FILE_CACHE[path] === "string";
+  console.log('existsSync', path, new Error().stack.split('\n').slice(1).join('\n'));
+  return typeof globalThis.MY_FILE_CACHE[path] === 'string';
 }
 
 async function readFile(path, options) {
   console.log(
-    "readFile",
-    { path, options },
+    'readFile',
+    { path, options }
     // new Error().stack.split("\n").slice(1).join("\n"),
   );
-  if (typeof globalThis.MY_FILE_CACHE[path] !== "string") {
-    throw new Error(path + "does not exist");
+  if (typeof globalThis.MY_FILE_CACHE[path] !== 'string') {
+    throw new Error(path + 'does not exist');
   }
   return globalThis.MY_FILE_CACHE[path];
 }
 
 function readFileSync(path, options) {
   console.log(
-    "readFileSync",
-    { path, options },
+    'readFileSync',
+    { path, options }
     // new Error().stack.split("\n").slice(1).join("\n"),
   );
-  if (typeof globalThis.MY_FILE_CACHE[path] !== "string") {
-    throw new Error(path + "does not exist");
+  if (typeof globalThis.MY_FILE_CACHE[path] !== 'string') {
+    throw new Error(path + 'does not exist');
   }
   return globalThis.MY_FILE_CACHE[path];
 }
 
 async function writeFile(file, data) {
   console.log(
-    "writeFile",
-    { file, data },
+    'writeFile',
+    { file, data }
     // new Error().stack.split("\n").slice(1).join("\n"),
   );
   globalThis.MY_FILE_CACHE[file] = data;
@@ -52,16 +48,16 @@ async function writeFile(file, data) {
 
 async function mkdir(dir) {
   console.log(
-    "mkdir",
-    dir,
+    'mkdir',
+    dir
     //new Error().stack.split("\n").slice(1).join("\n"),
   );
 }
 
 async function stat(file) {
   console.log(
-    "stat",
-    file,
+    'stat',
+    file
     // new Error().stack.split("\n").slice(1).join("\n"),
   );
   return { mtime: new Date(globalThis.MY_FILE_CACHE_MTIME) };

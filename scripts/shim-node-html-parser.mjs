@@ -5,6 +5,6 @@ export function parse(payload) {
     },
     toString() {
       return payload;
-    },
+    }
   };
 }

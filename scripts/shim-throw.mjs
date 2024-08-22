@@ -1,1 +1,1 @@
-throw new Error("This file should not be executed");
+throw new Error('This file should not be executed');
